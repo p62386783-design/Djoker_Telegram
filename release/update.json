@@ -1,6 +1,6 @@
 {
   "version": "12.6.6",
   "version_code": 6668,
-  "file_url": "https://raw.githubusercontent.com/p62386783-design/Djoker_Telegram/v1.0.2/release-assets/app.apk",
+  "file_url": "https://media.githubusercontent.com/media/p62386783-design/Djoker_Telegram/v1.0.2/release-assets/app.apk",
   "changelog": "- v1.0.2: Invisible mode UX update\n- Android 12+ blur + dim overlay\n- App version bumped to 12.6.6 (6668)"
 }
