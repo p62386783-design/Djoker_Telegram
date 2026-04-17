@@ -1,0 +1,331 @@
+From c3e6a8469fbfdfb93665cd937b887c1ad2f02f1f Mon Sep 17 00:00:00 2001
+From: gigadanil <gigadanil@users.noreply.github.com>
+Date: Sat, 18 Apr 2026 01:00:56 +0300
+Subject: [PATCH] feat(core): chat filters, branding, and app config
+
+---
+ .../ui/Adapters/DialogsSearchAdapter.java     | 40 ++++++++++++++++++-
+ .../src/main/res/values-ar/strings.xml        |  4 +-
+ .../src/main/res/values-de/strings.xml        |  4 +-
+ .../src/main/res/values-es/strings.xml        |  4 +-
+ .../src/main/res/values-it/strings.xml        |  4 +-
+ .../src/main/res/values-ko/strings.xml        |  4 +-
+ .../src/main/res/values-nl/strings.xml        |  4 +-
+ .../src/main/res/values-pt-rBR/strings.xml    |  4 +-
+ .../src/main/res/values-ru/strings.xml        |  6 ++-
+ .../src/main/res/values-uk/strings.xml        |  4 +-
+ TMessagesProj/src/main/res/values/strings.xml |  9 ++++-
+ TMessagesProj_App/google-services.json        | 29 ++++++++++++++
+ gradle.properties                             |  6 +--
+ 13 files changed, 98 insertions(+), 24 deletions(-)
+
+diff --git a/TMessagesProj/src/main/java/org/telegram/ui/Adapters/DialogsSearchAdapter.java b/TMessagesProj/src/main/java/org/telegram/ui/Adapters/DialogsSearchAdapter.java
+index d0be649f..51d61ed3 100644
+--- a/TMessagesProj/src/main/java/org/telegram/ui/Adapters/DialogsSearchAdapter.java
++++ b/TMessagesProj/src/main/java/org/telegram/ui/Adapters/DialogsSearchAdapter.java
+@@ -92,6 +92,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
+ 
+     public static enum Filter {
+         All(0, R.string.SearchMessagesFilterAll, R.string.SearchMessagesFilterAllFrom),
++        Bots(1, R.string.SearchMessagesFilterBots, R.string.SearchMessagesFilterBotsFrom),
+         Private(8, R.string.SearchMessagesFilterPrivate, R.string.SearchMessagesFilterPrivateFrom),
+         Groups(4, R.string.SearchMessagesFilterGroup, R.string.SearchMessagesFilterGroupFrom),
+         Channels(2, R.string.SearchMessagesFilterChannels, R.string.SearchMessagesFilterChannelsFrom);
+@@ -550,7 +551,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
+         final TLRPC.TL_messages_searchGlobal req = new TLRPC.TL_messages_searchGlobal();
+         req.broadcasts_only = (currentMessagesFilter.flags & 2) != 0;
+         req.groups_only = (currentMessagesFilter.flags & 4) != 0;
+-        req.users_only = (currentMessagesFilter.flags & 8) != 0;
++        req.users_only = (currentMessagesFilter.flags & 8) != 0 || (currentMessagesFilter.flags & 1) != 0;
+         req.limit = 20;
+         req.q = query;
+         req.filter = new TLRPC.TL_inputMessagesFilterEmpty();
+@@ -642,6 +643,9 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
+                                     continue;
+                                 }
+                             }
++                            if ((currentMessagesFilter.flags & 1) != 0 && !isBotDialog(message)) {
++                                continue;
++                            }
+                             searchResultMessages.add(msg);
+                             long dialog_id = MessageObject.getDialogId(message);
+                             ConcurrentHashMap<Long, Integer> read_max = message.out ? MessagesController.getInstance(currentAccount).dialogs_read_outbox_max : MessagesController.getInstance(currentAccount).dialogs_read_inbox_max;
+@@ -695,6 +699,38 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
+         }, ConnectionsManager.RequestFlagFailOnServerErrors);
+     }
+ 
++    private boolean isBotDialog(TLRPC.Message message) {
++        long dialogId = MessageObject.getDialogId(message);
++        if (dialogId <= 0) {
++            return false;
++        }
++        TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogId);
++        return user != null && user.bot;
++    }
++
++    private void pruneDeletedSearchMessages() {
++        removeDeletedFromList(searchForumResultMessages);
++        removeDeletedFromList(searchResultMessages);
++    }
++
++    private void removeDeletedFromList(ArrayList<MessageObject> messages) {
++        if (messages == null || messages.isEmpty()) {
++            return;
++        }
++        for (int i = messages.size() - 1; i >= 0; i--) {
++            MessageObject messageObject = messages.get(i);
++            if (messageObject == null) {
++                messages.remove(i);
++                continue;
++            }
++            long dialogId = messageObject.getDialogId();
++            int maxDeletedId = MessagesController.getInstance(currentAccount).deletedHistory.get(dialogId);
++            if (maxDeletedId != 0 && messageObject.getId() <= maxDeletedId) {
++                messages.remove(i);
++            }
++        }
++    }
++
+     public boolean hasRecentSearch() {
+         return recentSearchAvailable() && getRecentItemsCount() > 0;
+     }
+@@ -1353,6 +1389,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
+ 
+     @Override
+     public int getItemCount() {
++        pruneDeletedSearchMessages();
+         if (waitingResponseCount == 3) {
+             return 0;
+         }
+@@ -1424,6 +1461,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
+     }
+ 
+     public Object getItem(int i) {
++        pruneDeletedSearchMessages();
+         if (!publicPosts.isEmpty()) {
+             if (i > 0 && i - 1 < publicPosts.size()) {
+                 return publicPosts.get(i - 1);
+diff --git a/TMessagesProj/src/main/res/values-ar/strings.xml b/TMessagesProj/src/main/res/values-ar/strings.xml
+index 8b870043..373eec0f 100644
+--- a/TMessagesProj/src/main/res/values-ar/strings.xml
++++ b/TMessagesProj/src/main/res/values-ar/strings.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="AppName">تيليجرام</string>
+-    <string name="AppNameBeta">(Beta) تيليجرام</string>
++    <string name="AppName">Djoker Telegram</string>
++    <string name="AppNameBeta">Djoker Telegram Beta</string>
+     <string name="LanguageName">العربية</string>
+     <string name="English">الإنجليزية</string>
+     <string name="LanguageNameInEnglish">Arabic</string>
+diff --git a/TMessagesProj/src/main/res/values-de/strings.xml b/TMessagesProj/src/main/res/values-de/strings.xml
+index 9054784a..607cc5ff 100644
+--- a/TMessagesProj/src/main/res/values-de/strings.xml
++++ b/TMessagesProj/src/main/res/values-de/strings.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="AppName">Telegram</string>
+-    <string name="AppNameBeta">Telegram Beta</string>
++    <string name="AppName">Djoker Telegram</string>
++    <string name="AppNameBeta">Djoker Telegram Beta</string>
+     <string name="LanguageName">Deutsch</string>
+     <string name="English">Englisch</string>
+     <string name="LanguageNameInEnglish">German</string>
+diff --git a/TMessagesProj/src/main/res/values-es/strings.xml b/TMessagesProj/src/main/res/values-es/strings.xml
+index 4779808e..a9687ab4 100644
+--- a/TMessagesProj/src/main/res/values-es/strings.xml
++++ b/TMessagesProj/src/main/res/values-es/strings.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="AppName">Telegram</string>
+-    <string name="AppNameBeta">Telegram Beta</string>
++    <string name="AppName">Djoker Telegram</string>
++    <string name="AppNameBeta">Djoker Telegram Beta</string>
+     <string name="LanguageName">Español</string>
+     <string name="English">Inglés</string>
+     <string name="LanguageNameInEnglish">Spanish</string>
+diff --git a/TMessagesProj/src/main/res/values-it/strings.xml b/TMessagesProj/src/main/res/values-it/strings.xml
+index 3e7688d9..bffd7e6a 100644
+--- a/TMessagesProj/src/main/res/values-it/strings.xml
++++ b/TMessagesProj/src/main/res/values-it/strings.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="AppName">Telegram</string>
+-    <string name="AppNameBeta">Telegram Beta</string>
++    <string name="AppName">Djoker Telegram</string>
++    <string name="AppNameBeta">Djoker Telegram Beta</string>
+     <string name="LanguageName">Italiano</string>
+     <string name="English">Inglese</string>
+     <string name="LanguageNameInEnglish">Italian</string>
+diff --git a/TMessagesProj/src/main/res/values-ko/strings.xml b/TMessagesProj/src/main/res/values-ko/strings.xml
+index 6f75e2ef..b5bd2712 100644
+--- a/TMessagesProj/src/main/res/values-ko/strings.xml
++++ b/TMessagesProj/src/main/res/values-ko/strings.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="AppName">텔레그램</string>
+-    <string name="AppNameBeta">텔레그램</string>
++    <string name="AppName">Djoker Telegram</string>
++    <string name="AppNameBeta">Djoker Telegram Beta</string>
+     <string name="LanguageName">한국어</string>
+     <string name="English">영어</string>
+     <string name="LanguageNameInEnglish">한국어</string>
+diff --git a/TMessagesProj/src/main/res/values-nl/strings.xml b/TMessagesProj/src/main/res/values-nl/strings.xml
+index f3df87e8..7d0150d4 100644
+--- a/TMessagesProj/src/main/res/values-nl/strings.xml
++++ b/TMessagesProj/src/main/res/values-nl/strings.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="AppName">Telegram</string>
+-    <string name="AppNameBeta">Telegram-bèta</string>
++    <string name="AppName">Djoker Telegram</string>
++    <string name="AppNameBeta">Djoker Telegram Beta</string>
+     <string name="LanguageName">Nederlands</string>
+     <string name="English">Engels</string>
+     <string name="LanguageNameInEnglish">Dutch</string>
+diff --git a/TMessagesProj/src/main/res/values-pt-rBR/strings.xml b/TMessagesProj/src/main/res/values-pt-rBR/strings.xml
+index 03d0ba33..4c58dbf2 100644
+--- a/TMessagesProj/src/main/res/values-pt-rBR/strings.xml
++++ b/TMessagesProj/src/main/res/values-pt-rBR/strings.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="AppName">Telegram</string>
+-    <string name="AppNameBeta">Telegram Beta</string>
++    <string name="AppName">Djoker Telegram</string>
++    <string name="AppNameBeta">Djoker Telegram Beta</string>
+     <string name="LanguageName">Português (Brasil)</string>
+     <string name="English">Inglês</string>
+     <string name="LanguageNameInEnglish">Portuguese (Brazil)</string>
+diff --git a/TMessagesProj/src/main/res/values-ru/strings.xml b/TMessagesProj/src/main/res/values-ru/strings.xml
+index 24c56292..462bc90a 100644
+--- a/TMessagesProj/src/main/res/values-ru/strings.xml
++++ b/TMessagesProj/src/main/res/values-ru/strings.xml
+@@ -1,7 +1,9 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="AppName">Telegram</string>
+-    <string name="AppNameBeta">Telegram Beta</string>
++    <string name="AppName">Djoker Telegram</string>
++    <string name="AppNameBeta">Djoker Telegram Beta</string>
++    <string name="SearchMessagesFilterBots">Боты</string>
++    <string name="SearchMessagesFilterBotsFrom">От ботов</string>
+     <string name="LanguageName">Русский</string>
+     <string name="English">Английский</string>
+     <string name="LanguageNameInEnglish">Russian</string>
+diff --git a/TMessagesProj/src/main/res/values-uk/strings.xml b/TMessagesProj/src/main/res/values-uk/strings.xml
+index d4683443..196247ae 100644
+--- a/TMessagesProj/src/main/res/values-uk/strings.xml
++++ b/TMessagesProj/src/main/res/values-uk/strings.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="AppName">Telegram</string>
+-    <string name="AppNameBeta">Telegram Beta</string>
++    <string name="AppName">Djoker Telegram</string>
++    <string name="AppNameBeta">Djoker Telegram Beta</string>
+     <string name="LanguageName">Українська</string>
+     <string name="English">Англійська</string>
+     <string name="LanguageNameInEnglish">Ukrainian</string>
+diff --git a/TMessagesProj/src/main/res/values/strings.xml b/TMessagesProj/src/main/res/values/strings.xml
+index afb924cc..09ec8ff6 100644
+--- a/TMessagesProj/src/main/res/values/strings.xml
++++ b/TMessagesProj/src/main/res/values/strings.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="AppName">Telegram</string>
+-    <string name="AppNameBeta">Telegram Beta</string>
++    <string name="AppName">Djoker Telegram</string>
++    <string name="AppNameBeta">Djoker Telegram Beta</string>
+     <string name="LanguageName">English</string>
+     <string name="English">English</string>
+     <string name="LanguageNameInEnglish">English</string>
+@@ -9185,10 +9185,12 @@
+     <string name="SendAnotherGift">Send Another Gift</string>
+     <string name="SendGiftTo">Send Gift to %s</string>
+     <string name="SearchMessagesFilterAll">All Chats</string>
++    <string name="SearchMessagesFilterBots">Bots</string>
+     <string name="SearchMessagesFilterPrivate">Private Chats</string>
+     <string name="SearchMessagesFilterGroup">Group Chats</string>
+     <string name="SearchMessagesFilterChannels">Channels</string>
+     <string name="SearchMessagesFilterAllFrom">From all chats</string>
++    <string name="SearchMessagesFilterBotsFrom">From bots</string>
+     <string name="SearchMessagesFilterPrivateFrom">From private chats</string>
+     <string name="SearchMessagesFilterGroupFrom">From groups</string>
+     <string name="SearchMessagesFilterChannelsFrom">From channels</string>
+@@ -10654,4 +10656,7 @@
+     <string name="AIEditorEmojify">emojify</string>
+     <string name="TranslateCopy">Copy Translation</string>
+     <string name="TranslateEntireChat">Translate Entire Chat</string>
++    <string name="InvisibleModeEnabled">Invisible mode enabled</string>
++    <string name="InvisibleModeDisabled">Invisible mode disabled</string>
++    <string name="XrayUnsupportedAbiToast">Unsupported device ABI: %1$s</string>
+ </resources>
+\ No newline at end of file
+diff --git a/TMessagesProj_App/google-services.json b/TMessagesProj_App/google-services.json
+index 640e841b..25dd1daf 100644
+--- a/TMessagesProj_App/google-services.json
++++ b/TMessagesProj_App/google-services.json
+@@ -35,6 +35,35 @@
+         }
+       }
+     },
++    {
++      "client_info": {
++        "mobilesdk_app_id": "1:760348033671:android:f6afd7b67eae3860",
++        "android_client_info": {
++          "package_name": "com.mycompany.telegramfork"
++        }
++      },
++      "oauth_client": [
++        {
++          "client_id": "760348033671-2hh8ebmuflsnjoc0kldkfells9rhtfni.apps.googleusercontent.com",
++          "client_type": 3
++        }
++      ],
++      "api_key": [
++        {
++          "current_key": "AIzaSyA-t0jLPjUt2FxrA8VPK2EiYHcYcboIR6k"
++        }
++      ],
++      "services": {
++        "appinvite_service": {
++          "other_platform_oauth_client": [
++            {
++              "client_id": "760348033671-2hh8ebmuflsnjoc0kldkfells9rhtfni.apps.googleusercontent.com",
++              "client_type": 3
++            }
++          ]
++        }
++      }
++    },
+     {
+       "client_info": {
+         "mobilesdk_app_id": "1:760348033671:android:dc022572c167a16c",
+diff --git a/gradle.properties b/gradle.properties
+index 1f2ee28e..515aa2a6 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -13,9 +13,9 @@
+ # http://www.gradle.org/docs/current/userguide/multi_project_builds.html#sec:decoupled_projects
+ # org.gradle.parallel=true
+ #Sat Mar 12 05:53:50 MSK 2016
+-APP_VERSION_CODE=6666
+-APP_VERSION_NAME=12.6.4
+-APP_PACKAGE=org.telegram.messenger
++APP_VERSION_CODE=6672
++APP_VERSION_NAME=12.6.9
++APP_PACKAGE=com.mycompany.telegramfork
+ IS_PRIVATE=false
+ RELEASE_KEY_PASSWORD=android
+ RELEASE_KEY_ALIAS=androidkey
+-- 
+2.53.0.windows.1
+

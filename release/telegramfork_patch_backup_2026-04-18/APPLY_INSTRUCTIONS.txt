@@ -1,0 +1,5 @@
+﻿Source branch: safety/2026-04-18-publish
+Commits: c3e6a846, cc056b23
+Apply from TelegramFork root:
+  git am 0001-feat-core-chat-filters-branding-and-app-config.patch
+  git am 0001-feat-xray-add-launcher-integration-scaffolding.patch
