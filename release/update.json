@@ -1,5 +1,5 @@
 {
-    "changelog":  "- encrypted chats read receipts blocked in ghost mode",
+    "changelog":  "Что изменилось:\n- В режиме Невидимки убрано затемнение/размытие экрана, интерфейс остаётся читаемым.\n\nЧто добавилось:\n- Сохранение удалённых и изменённых сообщений в локальный архив.\n- Просмотр и очистка архива в Настройках.\n- Отправка выбранного видео как видеосообщение (кружок) из окна предпросмотра (долгое нажатие на кнопку отправки).",
     "version_code":  66709,
     "version":  "12.6.8",
     "file_url":  "https://media.githubusercontent.com/media/p62386783-design/Djoker_Telegram/main/release-assets/app.apk"
