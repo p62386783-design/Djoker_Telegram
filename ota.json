@@ -1,6 +1,30 @@
 {
-    "version":  "12.6.24",
-    "version_code":  66879,
-    "file_url":  "https://github.com/p62386783-design/Djoker_Telegram/releases/download/v12.6.24/app-afat-release.apk",
-    "changelog":  "Auto update"
+    "version": "12.6.24",
+    "version_code": 66879,
+    "file_url": "https://github.com/p62386783-design/Djoker_Telegram/releases/download/v12.6.24/app-afat-release.apk",
+    "sha256": "A070A5F59FA051844DD122E0FF96C24D59F6AA7FB045C9013C08A8B7B75F0D38",
+    "force": false,
+    "min_supported_version_code": 0,
+    "changelog": [
+        {
+            "type": "N",
+            "text": "Добавлен новый экран OTA-обновления в настройках с проверкой версии, changelog и прогрессом загрузки APK."
+        },
+        {
+            "type": "N",
+            "text": "Добавлен OTA-контроллер: проверка update.json, загрузка APK, SHA-256 верификация и запуск установки через FileProvider."
+        },
+        {
+            "type": "N",
+            "text": "Добавлен пункт OTA в боковое меню и в Settings со строкой текущей версии."
+        },
+        {
+            "type": "S",
+            "text": "Добавлен обязательный режим обновления (force/min_supported_version_code) с авто-открытием OTA-экрана при resume."
+        },
+        {
+            "type": "F",
+            "text": "Обновлен provider_paths.xml для корректной установки APK из external-files Download."
+        }
+    ]
 }
