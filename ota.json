@@ -1,30 +1,27 @@
+
 {
-    "version": "12.6.24",
-    "version_code": 66879,
-    "file_url": "https://github.com/p62386783-design/Djoker_Telegram/releases/download/v12.6.24/app-afat-release.apk",
-    "sha256": "A070A5F59FA051844DD122E0FF96C24D59F6AA7FB045C9013C08A8B7B75F0D38",
+    "version": "12.6.25",
+    "version_code": 66889,
+    "file_url": "https://media.githubusercontent.com/media/p62386783-design/Djoker_Telegram/main/release-assets/app.apk",
+    "sha256": "7312BB37720F3B92CC569F7DC5592EFF9DB5291C7D510EC649C39EB7BDD7E411",
     "force": false,
     "min_supported_version_code": 0,
     "changelog": [
         {
             "type": "N",
-            "text": "Добавлен новый экран OTA-обновления в настройках с проверкой версии, changelog и прогрессом загрузки APK."
+            "text": "Обновлен фирменный логотип приложения на всех платформах: Android, iOS, macOS, Web и Windows."
         },
         {
             "type": "N",
-            "text": "Добавлен OTA-контроллер: проверка update.json, загрузка APK, SHA-256 верификация и запуск установки через FileProvider."
-        },
-        {
-            "type": "N",
-            "text": "Добавлен пункт OTA в боковое меню и в Settings со строкой текущей версии."
-        },
-        {
-            "type": "S",
-            "text": "Добавлен обязательный режим обновления (force/min_supported_version_code) с авто-открытием OTA-экрана при resume."
+            "text": "Синхронизированы launcher-иконки для всех Android flavor/плотностей, включая standalone и round icon ресурсы."
         },
         {
             "type": "F",
-            "text": "Обновлен provider_paths.xml для корректной установки APK из external-files Download."
+            "text": "Исправлена локализация в аналитике: в окне \"Показать график\" дни недели теперь корректно отображаются по-русски (Пн-Вс)."
+        },
+        {
+            "type": "S",
+            "text": "Обновлены OTA-метаданные до версии 12.6.25 для следующей раздачи обновления."
         }
     ]
 }
